@@ -48,7 +48,7 @@ for (var name in objs) {
 debug('reloaded', _.keys(objs).length, 'followed');
 
 
-function saveLookup(user) {
+function saveLookup(user, maybeK) {
     if (!accounts[user.screen_name]) {
         accounts[user.screen_name] = {};
     }
@@ -57,7 +57,9 @@ function saveLookup(user) {
     account.nfo = user;
     userIds[user.id] = userIds[user.id] || false;
 
-    db.saveSync(user.screen_name, account);
+    db.save(
+        user.screen_name, account,
+        maybeK || function (err) { if (err) { console.error('Error onsaveLookup', err); } });
 }
 
 function saveFollowers(id, ids) {
@@ -135,14 +137,22 @@ function annotateIds (ids, k) {
             }
         }
 
-        debug('annotating', ids.slice(0, origCount).slice(0,10).join(',') + '..', ids.length);
+        debug('annotating IDs', ids.slice(0, origCount).slice(0,10).join(',') + '..', ids.length);
         client.get(cmd, {user_id: ids.join(',')},
             function (err, annotations) {
                 if (err) { return k(err); }
+                var done = 0;
+                var errors;
                 annotations.forEach(function (nfo) {
-                    saveLookup(nfo);
+                    saveLookup(nfo, function (err) {
+                        done++;
+                        errors = errors || err;
+                        if (done == annotations.length) {
+                            debug('done annotating');
+                            return k(err);
+                        }
+                    });
                 });
-                return k();
             });
     });
 }
@@ -156,14 +166,21 @@ function annotateNames (names, k) {
     onReady(cmd, function (err) {
         if (err) { return k(err); }
 
-        debug('annotating', names);
+        debug('annotating names', names, names.length);
         client.get(cmd, {screen_name: names.join(',')},
             function (err, annotations) {
                 if (err) { return k(err); }
+                var doneCount = 0;
+                var errors;
                 annotations.forEach(function (nfo) {
-                    saveLookup(nfo);
+                    saveLookup(nfo, function (err) {
+                        doneCount++;
+                        errors = errors || err;
+                        if (doneCount == annotations.length) {
+                            return k(errors);
+                        }
+                    });
                 });
-                return k();
             });
     });
 }
@@ -191,23 +208,32 @@ function followers (id, k) {
 //====================
 
 function addAnnotations () {
-    setInterval(function () {
-        debug('try updating names');
+
+    var annotate = function () {
         if (limits['/users/lookup'].remaining) {
             var incomplete =
                 _.keys(userIds)
                     .filter(function (id) { return !idToAccount[id] || !idToAccount[id].nfo; })
                     .slice(0, 100);
             if (incomplete.length > 50) {
-                annotateIds(incomplete, function (err) {
-                    if (err) { return console.error('failed to annotate names', err); }
+                return annotateIds(incomplete, function (err) {
+                    if (err) {
+                        setTimeout(annotate, 1000);
+                        return console.error('failed to annotate names', err);
+                    }
                     debug('annotated extra names');
+                    return setTimeout(annotate, 10);
                 });
             } else {
                 debug('not enough extras to annotate');
+                return setTimeout(annotate, 1000);
             }
         }
-    }, 1000);
+        return setTimeout(annotate, 1000);
+    };
+
+    annotate();
+
 }
 //====================
 
