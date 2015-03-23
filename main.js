@@ -399,20 +399,27 @@ function crawler (seeds, amt, k) {
 }
 
 
-updateLimits(function (err, limits) {
-    if (err) { return console.error('bad limits', err); }
+function go () {
+    updateLimits(function (err, limits) {
+        if (err) { return console.error('bad limits', err); }
 
-    addAnnotations();
+        addAnnotations();
 
-    crawler(SEEDS, MAX_RET, function (err, network) {
-        if (err) { return console.error('error', err); }
-        else {
-            debug(
-                'done',
-                _.keys(accounts)
-                    .filter(function (name) { return accounts[name].followers; }));
+        crawler(SEEDS, MAX_RET, function (err, network) {
+            if (err) {
+                console.error('error', err);
+                debug('RESTARTING');
+                go();
             }
+            else {
+                debug(
+                    'done',
+                    _.keys(accounts)
+                        .filter(function (name) { return accounts[name].followers; }));
+                }
+        });
     });
-});
+}
 
+go();
 
