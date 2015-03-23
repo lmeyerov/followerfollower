@@ -8,5 +8,5 @@ To use:
 2. go to twitter and create an app w/ auth tokens
 3. cp config.json.template config.json
 4. modify config.json with auth info
-5. run 'node main.js' to start filling in 'accounts.json'
+5. run 'node --max-old-space-size=8192 main.js' to start filling in 'accounts.json'
 6. run graphistry etl server and then 'node accountsToVgraph.js' to upload dataset twitter2
