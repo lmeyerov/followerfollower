@@ -53,6 +53,8 @@ function upload (data) {
             }
 
             console.log('OK!', body);
+            console.log('nodes:', data.labels.length);
+            console.log('edges:', data.graph.length);
         });
 }
 
