@@ -161,13 +161,13 @@ function onReady (cmd, k) {
 //[ {id: *, distance: int}] * cb -> ()
 function annotateIds (pairs, k) {
     var origCount = pairs.length;
-    debug('annotateIds');
+    debug('annotateIds', pairs.length);
 
     var cmd = '/users/lookup';
     onReady(cmd, function (err) {
         if (err) { return k(err); }
 
-        //lookup more, while we're add it
+        debug('Maybe add more IDs, already has', pairs.length);
         if (pairs.length < 100) {
             var attempts = 10000;
             var opts = _.keys(idToAccount);
@@ -279,6 +279,7 @@ function addAnnotations () {
                     .map(function (id) {
                         return {id: id, distance: idToDistance[id]};
                     });
+            debug('computed incomplete', incomplete.length);
             if (incomplete.length > 50) {
                 return annotateIds(incomplete, function (err) {
                     if (err) {
@@ -321,7 +322,9 @@ function explore (seeds, amt, k) {
     if (pair === undefined) {
         //coin flip between random & bfs
 
+        debug('sorting: _.keys');
         var ids = _.keys(idToAccount);
+        debug('sorting');
         ids.sort(function (a, b) { return idToDistance[a] - idToDistance[b]; });
 
         if (Math.random() > 0.8) {
@@ -345,6 +348,7 @@ function explore (seeds, amt, k) {
                 }
             }
         }
+        debug('picked pair', pair);
         if (!pair) { return k('exhausted'); }
     }
 
