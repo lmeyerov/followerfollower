@@ -68,9 +68,10 @@ for (var name in accounts) {
 }
 
 function save(filename) {
+    var t0 = Date.now();
     console.log('Saving data as', filename, '( #accounts:', _.keys(accounts).length, ')');
     fs.writeFileSync(filename, JSON.stringify(accounts));
-    console.log('Done saving');
+    console.log('Done saving', Date.now() - t0, 'ms');
 }
 
 function addLookup(user, maybeK) {
@@ -311,6 +312,8 @@ function explore (seeds, amt, k) {
 
     debug('explore call');
 
+    if (!amt) { return k(); }
+
     var pair;
     var distance;
     if (seeds.length) {
@@ -348,7 +351,7 @@ function explore (seeds, amt, k) {
 
     var proceed = function (err) {
         if (err) { return k(err); }
-        if (!idToAccount[pair.id]) {
+        if (!idToAccount[pair.id] || !idToAccount[pair.id].nfo) {
             console.error('failed to lookup before expanding, try another', pair.id);
             delete idToAccount[pair.id];
             blacklistIds[pair.id] = true;
@@ -416,13 +419,12 @@ function go () {
                 process.exit(-1);
                 debug('RESTARTING');
                 go();
-            }
-            else {
+            } else {
                 debug(
                     'done',
                     _.keys(accounts)
                         .filter(function (name) { return accounts[name].followers; }));
-                }
+            }
         });
     });
 }
