@@ -7,8 +7,16 @@ var fs  = require('fs');
 var request = require('request');
 var _       = require('underscore');
 
-var FILE_NAME = 'Twitter3';
-var accounts = JSON.parse(fs.readFileSync('accounts.json', 'utf8'));
+var DATASET_NAME = 'Twitter3';
+
+var args = process.argv.slice(2);
+if (args.length !== 1) {
+    console.log('need filename to upload');
+    process.exit(1);
+}
+var filename = args[0];
+
+var accounts = JSON.parse(fs.readFileSync(filename, 'utf8'));
 
 
 var state = {
@@ -64,7 +72,7 @@ function upload (data) {
 
 function bundle () {
     return {
-        name: FILE_NAME,
+        name: DATASET_NAME,
         type: 'edgelist',
         graph: state.edges,
         labels: state.nodes,

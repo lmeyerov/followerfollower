@@ -74,7 +74,6 @@ function save(filename) {
 }
 
 function addLookup(user, maybeK) {
-    debug('add lookup', user.id);
     if (user.distance === undefined) {
         throw new Error('missing distance');
     }
@@ -170,8 +169,8 @@ function annotateIds (pairs, k) {
         //lookup more, while we're add it
         if (pairs.length < 100) {
             var attempts = 10000;
+            var opts = _.keys(idToAccount);
             while (pairs.length < 100 && attempts--) {
-                var opts = _.keys(idToAccount);
                 var idx = Math.round(Math.random() * (opts.length - 1));
                 var id = opts[idx];
                 if (!idToAccount[id] || !idToAccount[id].nfo) {
