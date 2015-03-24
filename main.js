@@ -286,8 +286,8 @@ function addAnnotations () {
                     } else {
                         debug('annotated extra names');
                     }
-                    return setTimeout(addAnnotations, (err ? 30 : 3) * 1000);
                     debug('pause');
+                    return setTimeout(addAnnotations, (err ? 30 : 1) * 1000);
                 });
             } else {
                 console.warn('not enough names for poller, wait for more expansions');
