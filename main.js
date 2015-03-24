@@ -266,12 +266,10 @@ function followers (id, k) {
 
 function addAnnotations () {
 
-    var cmd = '/users/lookup';
-
-    var annotate = function () {
+        var cmd = '/users/lookup';
 
         debug('annotate poller');
-        if (limits[cmd].remaining > 20) {
+        if (limits[cmd].remaining > 17) {
             var incomplete =
                 _.keys(idToAccount)
                     .filter(function (id) { return !idToAccount[id] || !idToAccount[id].nfo; })
@@ -287,21 +285,17 @@ function addAnnotations () {
                     } else {
                         debug('annotated extra names');
                     }
-                    return setTimeout(annotate, (err ? 30 :3) * 1000);
+                    return setTimeout(addAnnotations, (err ? 30 : 3) * 1000);
                 });
             } else {
-                console.warn('not enough names, wait for more expansions');
-                return setTimeout(annotate, 30 * 1000);
+                console.warn('not enough names for poller, wait for more expansions');
+                return setTimeout(addAnnotations, 30 * 1000);
             }
         } else {
             var when = 1000 * ((limits[cmd].reset - (Date.now()/1000)) + 1);
-            debug('not enough extras to annotate', ((when/1000)/60).toFixed(1), 'min');
-            return setTimeout(annotate, Math.max(when, 30 * 1000));
+            debug('not enough extras to annotate while allowing explore so wait', ((when/1000)/60).toFixed(1), 'min');
+            return setTimeout(addAnnotations, Math.max(when, 30 * 1000));
         }
-
-    };
-
-    annotate();
 
 }
 //====================
