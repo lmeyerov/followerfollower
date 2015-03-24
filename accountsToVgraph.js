@@ -6,9 +6,11 @@ var fs  = require('fs');
 
 var request = require('request');
 var _       = require('underscore');
+var debug   = require('debug')('ff');
 
 var cfg = JSON.parse(fs.readFileSync('config.json', 'utf8'));
 var DATASET_NAME = cfg.FILE_NAME || ("TwitterV" + Math.round(Math.random() * 10000000));
+debug('loaded cfg', cfg);
 
 var args = process.argv.slice(2);
 if (args.length !== 1) {
@@ -18,6 +20,7 @@ if (args.length !== 1) {
 var filename = args[0];
 
 var accounts = JSON.parse(fs.readFileSync(filename, 'utf8'));
+debug ('loaded file', filename);
 
 var state = {
     edges: [],
@@ -33,6 +36,7 @@ _.values(accounts).forEach(function (account) {
         state.nodes.push(account.nfo);
     }
 });
+debug('loaded expanded accounts', state.nodes.length);
 function maybeAddDummy (id) {
     if (!expandedNodes[id]) {
         state.nodes.push({node: id, pointTitle: 'id:' + id});
@@ -50,12 +54,14 @@ _.values(accounts).forEach(function (account) {
         maybeAddDummy(follower);
     }
 });
+debug('loaded unexpanded accounts', state.nodes.length);
 
 
 function upload (data) {
     request.post('http://localhost:3000/etl',
         {form: JSON.stringify(data)},
         function (err, resp, body) {
+            debug('uploaded');
             if (err) {
                 return console.error('nooo', err);
             }
@@ -84,4 +90,7 @@ function bundle () {
     };
 }
 
-upload(bundle());
+var data = bundle();
+debug('bundled');
+
+upload(data);

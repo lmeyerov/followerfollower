@@ -185,6 +185,7 @@ function annotateIds (pairs, k) {
             pairs.length);
         client.get(cmd, {user_id: _.pluck(pairs,'id').join(',')},
             function (err, annotations) {
+                debug('downloaded annotations');
                 if (err) { return k(err); }
                 var done = 0;
                 var errors;
@@ -286,14 +287,17 @@ function addAnnotations () {
                         debug('annotated extra names');
                     }
                     return setTimeout(addAnnotations, (err ? 30 : 3) * 1000);
+                    debug('pause');
                 });
             } else {
                 console.warn('not enough names for poller, wait for more expansions');
+                debug('pause');
                 return setTimeout(addAnnotations, 30 * 1000);
             }
         } else {
             var when = 1000 * ((limits[cmd].reset - (Date.now()/1000)) + 1);
             debug('not enough extras to annotate while allowing explore so wait', ((when/1000)/60).toFixed(1), 'min');
+            debug('pause');
             return setTimeout(addAnnotations, Math.max(when, 30 * 1000));
         }
 
