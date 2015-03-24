@@ -7,7 +7,8 @@ var fs  = require('fs');
 var request = require('request');
 var _       = require('underscore');
 
-var FILE_NAME = 'Twitter3';
+var cfg = JSON.parse(fs.readFileSync('config.json', 'utf8'));
+var FILE_NAME = cfg.FILE_NAME || ("TwitterV" + Math.round(Math.random() * 10000000));
 var accounts = JSON.parse(fs.readFileSync('accounts.json', 'utf8'));
 
 

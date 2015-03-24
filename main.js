@@ -9,8 +9,8 @@ var debug   = require('debug')('ff');
 var Twitter = require('twitter');
 var _       = require('underscore');
 
-var MAX_RET = 3;
-var SEEDS   = ['NewtGringrich'];
+var MAX_RET = cfg.MAX_RET || 100000;
+var SEEDS   = cfg.SEEDS || ['lmeyerov'];
 
 
 
