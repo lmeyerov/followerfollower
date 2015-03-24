@@ -98,11 +98,14 @@ function addFollowers(id, ids, maybeK) {
     var distance = idToDistance[id];
     for (var i = 0; i < account.followers.length; i++) {
         var followerID = account.followers[i];
+        idToAccount[followerID] = {};
         idToDistance[followerID] =
             Math.min(distance + 1,
                 idToDistance[followerID] !== undefined ?
                     idToDistance[followerID] : (distance + 1));
     }
+
+    (maybeK || function () {})();
 }
 
 //==========
@@ -253,8 +256,7 @@ function followers (id, k) {
             function (err, ids, resp) {
                 if (err) {return k(err); }
                 debug('fetched', id, ids.ids.slice(0,10) + '...');
-                addFollowers(id, ids.ids);
-                k();
+                addFollowers(id, ids.ids, k);
             });
     });
 }
@@ -412,8 +414,8 @@ function go () {
             if (err) {
                 console.error('error', err);
                 process.exit(-1);
-                //debug('RESTARTING');
-                //go();
+                debug('RESTARTING');
+                go();
             }
             else {
                 debug(
