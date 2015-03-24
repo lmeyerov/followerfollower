@@ -1,9 +1,13 @@
+#!/usr/bin/env node
+
+'use strict';
+
 var fs  = require('fs');
 
 var request = require('request');
 var _       = require('underscore');
 
-var FILE_NAME = 'twitter2';
+var FILE_NAME = 'Twitter3';
 var accounts = JSON.parse(fs.readFileSync('accounts.json', 'utf8'));
 
 

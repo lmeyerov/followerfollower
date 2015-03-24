@@ -1,13 +1,17 @@
+#!/usr/bin/env node --max-old-space-size=8192
+
+'use strict';
+
 var fs  = require('fs');
 var cfg = JSON.parse(fs.readFileSync('config.json', 'utf8'));
 
 var debug   = require('debug')('ff');
 var Twitter = require('twitter');
 var _       = require('underscore');
-var Store   = require('jfs');
 
 var MAX_RET = 3;
-var SEEDS   = ['lmeyerov'];
+var SEEDS   = ['NewtGringrich'];
+
 
 
 //==========
@@ -19,10 +23,6 @@ var limits = {};
 //(persisted in accounts.json)
 var accounts = {};
 
-//relevant user ids, bool indicates whether already followed
-//{id -> bool}
-var userIds = {};
-
 //{id -> account}
 var idToAccount = {};
 
@@ -33,18 +33,22 @@ var client = new Twitter(cfg);
 
 var blacklistIds = {};
 
-var db = new Store('./accounts.json', {saveId: 'screen_name'});
+var exiting = false;
 
 //===========
 
-debug('reloading last session: followed users and follower ids');
-var objs = db.allSync();
-for (var name in objs) {
-    var account =  objs[name];
+if (fs.existsSync('accounts.json')) {
+    console.log('reloading last session: followed users and follower ids');
+    var raw = fs.readFileSync('accounts.json');
+    accounts = JSON.parse(raw);
+    debug('reloaded', _.keys(accounts).length, 'accounts');
+    raw = null;
+}
+
+for (var name in accounts) {
+    var account =  accounts[name];
     var id = account.nfo.id;
     var distance = account.nfo.distance;
-    accounts[name] = account;
-    userIds[id] = true;
     idToAccount[id] = account;
     idToDistance[id] = distance;
 
@@ -55,7 +59,6 @@ for (var name in objs) {
     if (account.followers) {
         for (var i = 0; i < account.followers.length; i++) {
             var followerID = account.followers[i];
-            userIds[followerID] = userIds[followerID] || false;
             idToDistance[followerID] =
                 Math.min(distance + 1,
                     idToDistance[followerID] !== undefined ?
@@ -63,9 +66,14 @@ for (var name in objs) {
         }
     }
 }
-debug('reloaded', _.keys(objs).length, 'followed');
 
-function saveLookup(user, maybeK) {
+function save(filename) {
+    console.log('Saving data as', filename, '( #accounts:', _.keys(accounts).length, ')');
+    fs.writeFileSync(filename, JSON.stringify(accounts));
+    console.log('Done saving');
+}
+
+function addLookup(user, maybeK) {
     if (user.distance === undefined) {
         throw new Error('missing distance');
     }
@@ -77,30 +85,21 @@ function saveLookup(user, maybeK) {
     idToAccount[user.id] = account;
     idToDistance[user.id] = user.distance;
     account.nfo = user;
-    userIds[user.id] = userIds[user.id] || false;
-
-    db.save(
-        user.screen_name, account,
-        maybeK || function (err) { if (err) { console.error('Error onsaveLookup', err); } });
 }
 
-function saveFollowers(id, ids) {
+function addFollowers(id, ids) {
     var account = idToAccount[id];
-    if (!account) { return k('saveFollowers: missing account ' + name); }
+    if (!account) { return k('addFollowers: missing account ' + name); }
 
     account.followers = _.union(account.followers || [], ids);
     var distance = idToDistance[id];
     for (var i = 0; i < account.followers.length; i++) {
         var followerID = account.followers[i];
-        userIds[followerID] = userIds[followerID] || false;
         idToDistance[followerID] =
             Math.min(distance + 1,
                 idToDistance[followerID] !== undefined ?
                     idToDistance[followerID] : (distance + 1));
     }
-    userIds[id] = true;
-
-    db.saveSync(account.nfo.screen_name, account);
 }
 
 //==========
@@ -165,7 +164,7 @@ function annotateIds (pairs, k) {
         if (pairs.length < 100) {
             var attempts = 10000;
             while (pairs.length < 100 && attempts--) {
-                var opts = _.keys(userIds);
+                var opts = _.keys(idToAccount);
                 var idx = Math.round(Math.random() * (opts.length - 1));
                 var id = opts[idx];
                 if (!idToAccount[id] || !idToAccount[id].nfo) {
@@ -187,7 +186,7 @@ function annotateIds (pairs, k) {
                     if ((idToDistance[nfo.id] !== undefined) && idToDistance[nfo.id] < nfo.distance) {
                         nfo.distance = idToDistance[nfo.id];
                     }
-                    saveLookup(nfo, function (err) {
+                    addLookup(nfo, function (err) {
                         done++;
                         errors = errors || err;
                         if (done == annotations.length) {
@@ -225,7 +224,7 @@ function annotateNames (pairs, k) {
                     if ((idToDistance[nfo.id] !== undefined) && idToDistance[nfo.id] < nfo.distance) {
                         nfo.distance = idToDistance[nfo.id];
                     }
-                    saveLookup(nfo, function (err) {
+                    addLookup(nfo, function (err) {
                         doneCount++;
                         errors = errors || err;
                         if (doneCount == annotations.length) {
@@ -250,7 +249,7 @@ function followers (id, k) {
             function (err, ids, resp) {
                 if (err) {return k(err); }
                 debug('fetched', id, ids.ids.slice(0,10) + '...');
-                saveFollowers(id, ids.ids);
+                addFollowers(id, ids.ids);
                 k();
             });
     });
@@ -268,7 +267,7 @@ function addAnnotations () {
         debug('annotate poller');
         if (limits[cmd].remaining > 20) {
             var incomplete =
-                _.keys(userIds)
+                _.keys(idToAccount)
                     .filter(function (id) { return !idToAccount[id] || !idToAccount[id].nfo; })
                     .slice(0, 100)
                     .map(function (id) {
@@ -284,7 +283,7 @@ function addAnnotations () {
                     return setTimeout(annotate, (err ? 30 :3) * 1000);
                 });
             } else {
-                console.warn('not enough names, wait for more expansions', err);
+                console.warn('not enough names, wait for more expansions');
                 return setTimeout(annotate, 30 * 1000);
             }
         } else {
@@ -314,7 +313,7 @@ function explore (seeds, amt, k) {
     if (pair === undefined) {
         //coin flip between random & bfs
 
-        var ids = _.keys(userIds);
+        var ids = _.keys(idToAccount);
         ids.sort(function (a, b) { return idToDistance[a] - idToDistance[b]; });
 
         if (Math.random() > 0.8) {
@@ -420,6 +419,17 @@ function go () {
         });
     });
 }
+
+process.on('SIGINT', function () {
+    if (!exiting) {
+        console.log('Got SIGINT, exiting...');
+        exiting = true;
+        save('accounts.json');
+        process.exit(0);
+    }
+});
+
+setInterval(save.bind('','accounts.json'), 15 * 60 * 1000);
 
 go();
 
