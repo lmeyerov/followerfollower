@@ -74,6 +74,7 @@ function save(filename) {
 }
 
 function addLookup(user, maybeK) {
+    debug('add lookup', user.id);
     if (user.distance === undefined) {
         throw new Error('missing distance');
     }
@@ -85,11 +86,13 @@ function addLookup(user, maybeK) {
     idToAccount[user.id] = account;
     idToDistance[user.id] = user.distance;
     account.nfo = user;
+
+    (maybeK || function () {})();
 }
 
-function addFollowers(id, ids) {
+function addFollowers(id, ids, maybeK) {
     var account = idToAccount[id];
-    if (!account) { return k('addFollowers: missing account ' + name); }
+    if (!account) { return (maybeK || function (){})('addFollowers: missing account ' + name); }
 
     account.followers = _.union(account.followers || [], ids);
     var distance = idToDistance[id];
@@ -155,6 +158,7 @@ function onReady (cmd, k) {
 //[ {id: *, distance: int}] * cb -> ()
 function annotateIds (pairs, k) {
     var origCount = pairs.length;
+    debug('annotateIds');
 
     var cmd = '/users/lookup';
     onReady(cmd, function (err) {
@@ -407,8 +411,9 @@ function go () {
         crawler(SEEDS, MAX_RET, function (err, network) {
             if (err) {
                 console.error('error', err);
-                debug('RESTARTING');
-                go();
+                process.exit(-1);
+                //debug('RESTARTING');
+                //go();
             }
             else {
                 debug(
