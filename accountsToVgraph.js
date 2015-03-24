@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env node --max-old-space-size=8192
 
 'use strict';
 
@@ -9,7 +9,7 @@ var _       = require('underscore');
 var debug   = require('debug')('ff');
 
 var cfg = JSON.parse(fs.readFileSync('config.json', 'utf8'));
-var DATASET_NAME = cfg.FILE_NAME || ("TwitterV" + Math.round(Math.random() * 10000000));
+var DATASET_NAME = cfg.DATASET_NAME || ("TwitterV" + Math.round(Math.random() * 10000000));
 debug('loaded cfg', cfg);
 
 var args = process.argv.slice(2);

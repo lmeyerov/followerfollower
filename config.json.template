@@ -1,5 +1,6 @@
 {
-   "FILE_NAME": "",
+   "DATASET_NAME": "",
+   "FILE_NAME": "accounts.json",
    "MAX_RET": 100000,
    "SEEDS": ["lmeyerov"],
 

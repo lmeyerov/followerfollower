@@ -11,6 +11,7 @@ var _       = require('underscore');
 
 var MAX_RET = cfg.MAX_RET || 100000;
 var SEEDS   = cfg.SEEDS || ['lmeyerov'];
+var FILE_NAME = cfg.FILE_NAME || 'accounts.json'
 
 
 
@@ -37,9 +38,9 @@ var exiting = false;
 
 //===========
 
-if (fs.existsSync('accounts.json')) {
+if (fs.existsSync(FILE_NAME)) {
     console.log('reloading last session: followed users and follower ids');
-    var raw = fs.readFileSync('accounts.json');
+    var raw = fs.readFileSync(FILE_NAME);
     accounts = JSON.parse(raw);
     debug('reloaded', _.keys(accounts).length, 'accounts');
     raw = null;
@@ -434,12 +435,12 @@ process.on('SIGINT', function () {
     if (!exiting) {
         console.log('Got SIGINT, exiting...');
         exiting = true;
-        save('accounts.json');
+        save(FILE_NAME);
         process.exit(0);
     }
 });
 
-setInterval(save.bind('','accounts.json'), 15 * 60 * 1000);
+setInterval(save.bind('', FILE_NAME), 15 * 60 * 1000);
 
 go();
 
