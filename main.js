@@ -365,14 +365,20 @@ function explore (seeds, amt, k) {
             //personalized pagerank, to avoid letting a supernode dominate
             var id = ids[0];
             var dist = 0;
+            var max = 1000;
             while (idToAccount[id] && idToAccount[id].followers) {
                 id = idToAccount[id].followers[
                     Math.round(Math.random() * (idToAccount[id].followers.length - 1))];
                 dist++;
                 if (blacklistIds[id]) {
-                    debug('blacklisted, retry', id);
-                    id = ids[0];
-                    dist = 0;
+                    if (max--) {
+                        debug('blacklisted, retry', id);
+                        id = ids[0];
+                        dist = 0;
+                    } else {
+                        debug('blacklisted, full retry');
+                        return explore(seeds, amt, k);
+                    }
                 }
             }
             pair = {id: id, distance: dist};
