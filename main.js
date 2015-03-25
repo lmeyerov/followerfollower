@@ -212,7 +212,12 @@ function annotateIds (pairs, k) {
                             blacklistIds[nfo.id] = true;
                         }
                         if (done == annotations.length) {
-                            debug('done annotating');
+                            debug('done annotating, checking');
+                            pairs.forEach(function (pair) {
+                                if (!idToAccount[pair.id] || !idToAccount[pair.id].nfo) {
+                                    blacklistIds[pair.id] = true;
+                                }
+                            });
                             return k(errors);
                         }
                     });
