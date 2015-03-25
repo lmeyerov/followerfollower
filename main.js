@@ -28,6 +28,9 @@ var accounts = {};
 var idToAccount = {};
 
 //{id -> int}
+var idToDegree = {};
+
+//{id -> int}
 var idToDistance = {};
 
 var client = new Twitter(cfg);
@@ -64,6 +67,7 @@ for (var name in accounts) {
                 Math.min(distance + 1,
                     idToDistance[followerID] !== undefined ?
                         idToDistance[followerID] : (distance + 1));
+            idToDistance[followerID] = (idToDistance[followerID] || 0) + 1;
         }
     }
 }
@@ -104,6 +108,7 @@ function addFollowers(id, ids, maybeK) {
             Math.min(distance + 1,
                 idToDistance[followerID] !== undefined ?
                     idToDistance[followerID] : (distance + 1));
+        idToDegree[followerID] = (idToDegree[followerID] || 0) + 1;
     }
 
     (maybeK || function () {})();
@@ -335,15 +340,28 @@ function explore (seeds, amt, k) {
         pair = seeds.pop();
     }
     if (pair === undefined) {
-        //coin flip between random & bfs
 
-        debug('sorting: _.keys');
+        //coin flip between an existing connected but unexplored node, random dfs, & bfs
+
+        debug('presort: _.keys');
         var ids = _.keys(idToAccount);
-        debug('sorting');
-        ids.sort(function (a, b) { return idToDistance[a] - idToDistance[b]; });
 
-        if (Math.random() > 0.8) {
+        var flip = Math.random();
+        if (flip > 0.5) {
+            debug('popular unexplored');
+            ids.sort(function (a, b) { return idToDegree[b] - idToDegree[a]; });
+            for (var i = 0; i < ids.length; i++) {
+                var id = ids[i];
+                if ((!idToAccount[id] || !idToAccount[id].followers) && !blacklistIds[id]) {
+                    pair = {id: id, distance: idToDistance[id]};
+                    break;
+                }
+            }
+        } else if (flip > 0.25) {
+            debug('sorting');
+            ids.sort(function (a, b) { return idToDistance[a] - idToDistance[b]; });
             debug('exploring dfs');
+
             //personalized pagerank, to avoid letting a supernode dominate
             var id = ids[0];
             var dist = 0;
