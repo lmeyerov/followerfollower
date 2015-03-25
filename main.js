@@ -476,9 +476,10 @@ function crawl () {
      crawler(SEEDS, MAX_RET, function (err, network) {
         if (err) {
             console.error('error', err);
-            process.exit(-1);
+            save(FILE_NAME + '.tmp.' + (Math.round(Math.random()) * 100000));
             debug('RESTARTING');
             crawl();
+            //process.exit(-1);
         } else {
             debug(
                 'done',
