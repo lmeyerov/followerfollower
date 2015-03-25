@@ -367,6 +367,10 @@ function explore (seeds, amt, k) {
             var dist = 0;
             var max = 1000;
             while (idToAccount[id] && idToAccount[id].followers) {
+                if (!idToAccount[id].followers.length) {
+                    debug('endpoint, retry');
+                    return explore(seeds, amt, k);
+                }
                 id = idToAccount[id].followers[
                     Math.round(Math.random() * (idToAccount[id].followers.length - 1))];
                 dist++;
