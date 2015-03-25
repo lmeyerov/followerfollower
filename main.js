@@ -187,7 +187,12 @@ function annotateIds (pairs, k) {
         client.get(cmd, {user_id: _.pluck(pairs,'id').join(',')},
             function (err, annotations) {
                 debug('downloaded annotations');
-                if (err) { return k(err); }
+                if (err) {
+                    pairs.forEach(function (pair) {
+                        blacklistIds[pair.id] = true;
+                    });
+                    return k(err);
+                }
                 var done = 0;
                 var errors;
                 annotations.forEach(function (nfo) {
@@ -198,6 +203,9 @@ function annotateIds (pairs, k) {
                     addLookup(nfo, function (err) {
                         done++;
                         errors = errors || err;
+                        if (err) {
+                            blacklistIds[nfo.id] = true;
+                        }
                         if (done == annotations.length) {
                             debug('done annotating');
                             return k(errors);
@@ -256,7 +264,10 @@ function followers (id, k) {
         debug('fetching', id, idToAccount[id].nfo.screen_name);
         client.get(cmd, who,
             function (err, ids, resp) {
-                if (err) {return k(err); }
+                if (err) {
+                    blacklistIds[id] = true;
+                    return k(err);
+                }
                 debug('fetched', id, ids.ids.slice(0,10) + '...');
                 addFollowers(id, ids.ids, k);
             });
@@ -340,9 +351,16 @@ function explore (seeds, amt, k) {
                 id = idToAccount[id].followers[
                     Math.round(Math.random() * (idToAccount[id].followers.length - 1))];
                 dist++;
+                if (blacklistIds[id]) {
+                    debug('blacklisted, retry', id);
+                    id = ids[0];
+                    dist = 0;
+                }
             }
             pair = {id: id, distance: dist};
         } else {
+            debug('sorting');
+            ids.sort(function (a, b) { return idToDistance[a] - idToDistance[b]; });
             debug('exploring bfs');
             for (var i = 0; i < ids.length; i++) {
                 var id = ids[i];
@@ -354,6 +372,10 @@ function explore (seeds, amt, k) {
         }
         debug('picked pair', pair);
         if (!pair) { return k('exhausted'); }
+        if (blacklistIds[pair.id]) {
+            debug('picked blacklisted, retry');
+            return explore(seeds, amt, k);
+        }
     }
 
     var proceed = function (err) {
@@ -407,7 +429,8 @@ function crawler (seeds, amt, k) {
                     .filter(function (name) { return accounts[name] && !accounts[name].followers; })
                     .map(function (name) {
                         return {id: accounts[name].nfo.id, distance: accounts[name].nfo.distance};
-                    }),
+                    })
+                    .filter(function (pair) { return !blacklistIds[pair.id];  }),
                 amt - 1,
                 k);
         });
