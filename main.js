@@ -268,6 +268,7 @@ function followers (id, k) {
 
 function addAnnotations () {
 
+    try {
         var cmd = '/users/lookup';
 
         debug('annotate poller');
@@ -301,6 +302,10 @@ function addAnnotations () {
             debug('pause');
             return setTimeout(addAnnotations, Math.max(when, 30 * 1000));
         }
+    } catch (e) {
+        debug('exn adding annotations, restart', e);
+        setTimeout(addAnnotations, 3 * 1000);
+    }
 
 }
 //====================
@@ -409,25 +414,32 @@ function crawler (seeds, amt, k) {
 }
 
 
+function crawl () {
+     crawler(SEEDS, MAX_RET, function (err, network) {
+        if (err) {
+            console.error('error', err);
+            process.exit(-1);
+            debug('RESTARTING');
+            crawl();
+        } else {
+            debug(
+                'done',
+                _.keys(accounts)
+                    .filter(function (name) { return accounts[name].followers; }));
+        }
+    });
+}
+
+
+
 function go () {
     updateLimits(function (err, limits) {
         if (err) { return console.error('bad limits', err); }
 
         addAnnotations();
 
-        crawler(SEEDS, MAX_RET, function (err, network) {
-            if (err) {
-                console.error('error', err);
-                process.exit(-1);
-                debug('RESTARTING');
-                go();
-            } else {
-                debug(
-                    'done',
-                    _.keys(accounts)
-                        .filter(function (name) { return accounts[name].followers; }));
-            }
-        });
+        crawl();
+
     });
 }
 
