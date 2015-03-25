@@ -487,7 +487,11 @@ function crawl () {
 
 function go () {
     updateLimits(function (err, limits) {
-        if (err) { return console.error('bad limits', err); }
+        if (err) {
+            console.error('bad limits', err);
+            debug('restarting');
+            go();
+        }
 
         addAnnotations();
 
