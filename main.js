@@ -280,7 +280,7 @@ function followers (id, k) {
                     idToAccount[id].followers = [];
                     return k(err);
                 }
-                debug('fetched', id, ids.ids.slice(0,10) + '...');
+                debug('fetched', id, ids.length, ids.ids.slice(0,10) + '...');
                 addFollowers(id, ids.ids, k);
             });
     });
