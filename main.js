@@ -180,7 +180,7 @@ function annotateIds (pairs, k) {
             while (pairs.length < 100 && attempts--) {
                 var idx = Math.round(Math.random() * (opts.length - 1));
                 var id = opts[idx];
-                if (!idToAccount[id] || !idToAccount[id].nfo) {
+                if ((!idToAccount[id] || !idToAccount[id].nfo) && !blacklistIds[id]) {
                     pairs.push({id: id, distance: idToDistance[id]});
                 }
             }
@@ -270,7 +270,9 @@ function followers (id, k) {
         client.get(cmd, who,
             function (err, ids, resp) {
                 if (err) {
+                    debug('bad fetch', id);
                     blacklistIds[id] = true;
+                    idToAccount[id].followers = [];
                     return k(err);
                 }
                 debug('fetched', id, ids.ids.slice(0,10) + '...');

@@ -58,6 +58,11 @@ debug('loaded unexpanded accounts', state.nodes.length);
 
 
 function upload (data) {
+
+    console.log('UPLOADING');
+    console.log('nodes:', data.labels.length);
+    console.log('edges:', data.graph.length);
+
     request.post('http://localhost:3000/etl',
         {form: JSON.stringify(data)},
         function (err, resp, body) {
@@ -71,8 +76,6 @@ function upload (data) {
             }
 
             console.log('OK!', body);
-            console.log('nodes:', data.labels.length);
-            console.log('edges:', data.graph.length);
         });
 }
 
