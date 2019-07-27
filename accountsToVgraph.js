@@ -1,11 +1,26 @@
+#!/usr/bin/env node --max-old-space-size=8192
+
+'use strict';
+
 var fs  = require('fs');
 
 var request = require('request');
 var _       = require('underscore');
+var debug   = require('debug')('ff');
 
-var FILE_NAME = 'twitter2';
-var accounts = JSON.parse(fs.readFileSync('accounts.json', 'utf8'));
+var cfg = JSON.parse(fs.readFileSync('config.json', 'utf8'));
+var DATASET_NAME = cfg.DATASET_NAME || ("TwitterV" + Math.round(Math.random() * 10000000));
+debug('loaded cfg', cfg);
 
+var args = process.argv.slice(2);
+if (args.length !== 1) {
+    console.log('need filename to upload');
+    process.exit(1);
+}
+var filename = args[0];
+
+var accounts = JSON.parse(fs.readFileSync(filename, 'utf8'));
+debug ('loaded file', filename);
 
 var state = {
     edges: [],
@@ -21,6 +36,7 @@ _.values(accounts).forEach(function (account) {
         state.nodes.push(account.nfo);
     }
 });
+debug('loaded expanded accounts', state.nodes.length);
 function maybeAddDummy (id) {
     if (!expandedNodes[id]) {
         state.nodes.push({node: id, pointTitle: 'id:' + id});
@@ -38,12 +54,19 @@ _.values(accounts).forEach(function (account) {
         maybeAddDummy(follower);
     }
 });
+debug('loaded unexpanded accounts', state.nodes.length);
 
 
 function upload (data) {
+
+    console.log('UPLOADING');
+    console.log('nodes:', data.labels.length);
+    console.log('edges:', data.graph.length);
+
     request.post('http://localhost:3000/etl',
         {form: JSON.stringify(data)},
         function (err, resp, body) {
+            debug('uploaded');
             if (err) {
                 return console.error('nooo', err);
             }
@@ -53,14 +76,12 @@ function upload (data) {
             }
 
             console.log('OK!', body);
-            console.log('nodes:', data.labels.length);
-            console.log('edges:', data.graph.length);
         });
 }
 
 function bundle () {
     return {
-        name: FILE_NAME,
+        name: DATASET_NAME,
         type: 'edgelist',
         graph: state.edges,
         labels: state.nodes,
@@ -72,4 +93,7 @@ function bundle () {
     };
 }
 
-upload(bundle());
+var data = bundle();
+debug('bundled');
+
+upload(data);
